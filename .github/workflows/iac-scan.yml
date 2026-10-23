@@ -1,0 +1,40 @@
+name: IaC security scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-iac:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Trivy scan - full report
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: iac-sample
+          format: sarif
+          output: trivy-iac.sarif
+          exit-code: '0'
+
+      - name: Upload results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-iac.sarif
+
+      - name: Trivy gate - block on CRITICAL
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: iac-sample
+          severity: CRITICAL
+          exit-code: '1'
